@@ -7,7 +7,12 @@
   lib,
   ...
 }:
+
 {
+  imports = [
+    ./vendor-blobs.nix
+  ];
+
   options.calyxos = {
     branch = lib.mkOption {
       type = with lib.types; str;
@@ -99,8 +104,14 @@
         # CalyxOS uses APEX
         signing.apex.enable = mkDefault true;
 
-        # Add tools needed by CalyxOS device script
-        envPackages = [ pkgs.curl ];
+        # Add tools needed by CalyxOS vendor blob extraction
+        envPackages = with pkgs; [
+          curl
+          # Tools for vendor blob extraction (adevtool-style)
+          e2fsprogs  # for debugfs to extract ext4 images
+          python3
+          unzip
+        ];
       }
     ]);
 }

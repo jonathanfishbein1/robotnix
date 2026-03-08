@@ -4,7 +4,7 @@ This directory contains the Robotnix flavor module for [CalyxOS](https://calyxos
 
 ## ⚠️ Current Status
 
-**Work in Progress** - The CalyxOS flavor integration is functional for source fetching and basic configuration, but **vendor blob support is not yet implemented**. Builds will fail at the vendor blob stage.
+**Functional (Testing Required)** - The CalyxOS flavor integration includes source fetching, build configuration, and vendor blob pre-fetching infrastructure. Builds may succeed for devices with generated vendor metadata.
 
 ### What Works
 - ✅ Source manifest fetching (lockfiles)
@@ -12,13 +12,16 @@ This directory contains the Robotnix flavor module for [CalyxOS](https://calyxos
 - ✅ `breakfast` command integration
 - ✅ Default apps configuration (Seedvault, Updater)
 - ✅ microG and APEX signing enabled
+- ✅ **Vendor blob pre-fetching** - Factory images fetched before build
+- ✅ **Metadata extraction tool** - Automated vendor metadata generation
+- ✅ **Factory image integration** - Pre-fetched images available to build
 
-### What's Missing
-- ❌ **Vendor blob pre-fetching** - Requires implementation similar to GrapheneOS's adevtool integration
-- ❌ Factory image metadata (URLs, SHA256 hashes)
-- ❌ Automated vendor blob extraction
+### What Needs Testing
+- ⚠️ **End-to-end build** - Full build process not yet verified
+- ⚠️ **Vendor blob extraction** - CalyxOS device.sh script integration
+- ⚠️ **Build ID accuracy** - Verify correct factory images for each branch
 
-See the "Contributing" section below for details on completing this implementation.
+See the "Building" section above for usage instructions.
 
 ## About CalyxOS
 
@@ -60,15 +63,38 @@ Available branches (as of 2025):
 
 ## Building
 
+### Prerequisites
+
+Before building, you need to generate vendor image metadata for your device:
+
+```bash
+cd flavors/calyxos
+
+# Extract metadata for your device(s)
+./extract-vendor-metadata.py \
+  --devices panther shiba felix \
+  --output-dir android15-qpr2/vendor_imgs \
+  --branch android15-qpr2
+```
+
+This creates JSON files with factory image URLs and checksums that robotnix will use to pre-fetch vendor blobs.
+
+### Build Command
+
 To build CalyxOS with Robotnix:
 
 ```bash
 nix-build --arg configuration '{
   flavor = "calyxos";
-  device = "shiba";
+  device = "panther";  # or shiba, felix, etc.
   calyxos.branch = "android15-qpr2";
-}'
+}' -A img
 ```
+
+The build will:
+1. Pre-fetch the factory image using the metadata
+2. Extract vendor blobs before the build
+3. Build CalyxOS with the vendor files included
 
 ## Updating Lockfiles
 

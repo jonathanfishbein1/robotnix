@@ -69,6 +69,7 @@ in
         types.enum [
           "lineageos"
           "grapheneos"
+          "calyxos"
         ]
       );
       description = ''
@@ -485,9 +486,15 @@ in
                     ${pkgs.gnused}/bin/sed -i s/auto_generated_rro/auto_generated_vendor_rro/g vendor/google_devices/${config.device}/${config.device}.mk
                   ''}
 
+                  # CalyxOS: Run device script to fetch vendor blobs for Pixel devices
+                  ${lib.optionalString (config.flavor == "calyxos" && config.device != null) ''
+                    echo "Running CalyxOS device script for ${config.device}..."
+                    ./calyx/scripts/pixel/device.sh ${config.device} || echo "Warning: device script failed, continuing anyway..."
+                  ''}
+
                 ''
                 + (
-                  if config.flavor == "lineageos" then
+                  if config.flavor == "lineageos" || config.flavor == "calyxos" then
                     ''
                       breakfast ${config.device} ${config.variant}
                     ''

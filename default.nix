@@ -41,6 +41,7 @@ let
         #./flavors/anbox
         ./flavors/grapheneos
         ./flavors/lineageos
+        ./flavors/calyxos
         #./flavors/vanilla
         #./flavors/vanilla/10
         #./flavors/vanilla/11

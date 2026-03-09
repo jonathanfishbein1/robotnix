@@ -1,11 +1,7 @@
 # SPDX-FileCopyrightText: 2020 Daniel Fullmer and robotnix contributors
 # SPDX-License-Identifier: MIT
 
-{
-  system ? builtins.currentSystem,
-  inputs ? (import ../flake/compat.nix { inherit system; }).defaultNix.inputs,
-  ...
-}@args:
+{ inputs, ... }@args:
 
 let
   inherit (inputs) nixpkgs androidPkgs;

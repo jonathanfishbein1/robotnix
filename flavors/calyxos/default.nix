@@ -36,6 +36,7 @@
   config =
     let
       inherit (lib)
+        elem
         optional
         mkMerge
         mkDefault

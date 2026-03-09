@@ -15,8 +15,8 @@ let
   cfg = config.calyxos;
 
   # Path to vendor metadata for current branch and device
-  vendorMetadataPath = ./. + "/${cfg.branch}/vendor_imgs/${config.device}.json";
-  vendorMetadataExists = builtins.pathExists vendorMetadataPath;
+  vendorMetadataPath = if config.device != null then ./. + "/${cfg.branch}/vendor_imgs/${config.device}.json" else null;
+  vendorMetadataExists = if vendorMetadataPath != null then builtins.pathExists vendorMetadataPath else false;
 
   # Import vendor metadata if it exists
   vendorMetadata = if vendorMetadataExists

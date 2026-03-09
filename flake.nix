@@ -76,6 +76,14 @@
 
       checks.x86_64-linux = {
         formatting = treefmtModule.config.build.check self;
+        eval =
+          let
+            results = import ./tests/eval.nix { inherit pkgs; };
+          in
+          if results == [ ] then
+            pkgs.runCommand "eval-tests-passed" { } "echo 'All eval tests passed' > $out"
+          else
+            throw "Eval tests failed: ${builtins.toJSON results}";
       };
     };
 }

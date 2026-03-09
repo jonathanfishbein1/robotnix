@@ -1,9 +1,6 @@
-# To run these tests:
-# nix-instantiate --eval --strict ./eval.nix
-# if the resulting list is empty, all tests passed
-
+# To run: nix build .#checks.x86_64-linux.eval
+{ pkgs }:
 let
-  pkgs = import ../pkgs { };
   lib = pkgs.lib;
   robotnixSystem = configuration: import ../default.nix { inherit configuration pkgs; };
 in

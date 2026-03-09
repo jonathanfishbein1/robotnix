@@ -6,8 +6,6 @@
 
     androidPkgs.url = "github:tadfisher/android-nixpkgs/stable";
 
-    flake-compat.url = "github:nix-community/flake-compat";
-
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -19,7 +17,6 @@
       self,
       nixpkgs,
       androidPkgs,
-      flake-compat,
       ...
     }@inputs:
     let

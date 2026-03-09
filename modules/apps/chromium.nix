@@ -84,7 +84,7 @@ in
             displayName,
             buildSeparately ? false,
             chromeModernIsBundled ? true,
-            isTriChrome ? (config.androidVersion >= 10),
+            isTriChrome ? true,
           }:
           let
             # There is a lot of shared code between chrome app and chrome webview. So we

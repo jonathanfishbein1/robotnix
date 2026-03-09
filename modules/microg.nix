@@ -43,10 +43,6 @@ in
 
   config = mkIf config.microg.enable {
 
-    resources."frameworks/base/packages/SettingsProvider".def_location_providers_allowed = mkIf (
-      config.androidVersion == 9
-    ) (mkDefault "gps,network");
-
     # Using cloud messaging, so enabling: https://source.android.com/devices/tech/power/platform_mgmt#integrate-doze
     resources."frameworks/base/core/res".config_enableAutoPowerModes = mkDefault true;
 

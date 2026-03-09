@@ -23,7 +23,7 @@ let
   wrapScript =
     { commands, keysDir }:
     let
-      jre = if (config.androidVersion >= 11) then pkgs.jdk11_headless else pkgs.jre8_headless;
+      jre = pkgs.jdk11_headless;
       deps = with pkgs; [
         otaTools
         openssl
@@ -271,12 +271,8 @@ in
                   echo Building incremental OTA zip
                   ${otaScript {
                     targetFiles = signedTargetFiles.name;
-                    prevTargetFiles =
-                      "${config.device}-target_files"
-                      + lib.optionalString (config.androidVersion < 14) "-$PREV_BUILDNUMBER.zip";
-                    out = "${config.device}-incremental${
-                      lib.optionalString (config.androidVersion < 14) "-$PREV_BUILDNUMBER-${config.buildNumber}"
-                    }.zip";
+                    prevTargetFiles = "${config.device}-target_files";
+                    out = "${config.device}-incremental.zip";
                   }}
                 fi
                 echo Building .img file

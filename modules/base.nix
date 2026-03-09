@@ -149,7 +149,7 @@ in
     };
 
     androidVersion = mkOption {
-      default = 12;
+      default = 16;
       type = types.int;
       description = "Used to select which Android version to use";
     };
@@ -233,12 +233,7 @@ in
     };
 
     targetFilesName = mkOption {
-      default =
-        let
-          # Android versions < 14 suffix the build number
-          suffix = lib.optionalString (config.androidVersion < 14) "-${config.buildNumber}";
-        in
-        "${config.productName}-target_files${suffix}.zip";
+      default = "${config.productName}-target_files.zip";
       internal = true;
     };
 
@@ -264,22 +259,7 @@ in
       }
     )
     {
-      apiLevel =
-        {
-          # TODO: If we start building older androids and need the distinction
-          # between 7 and 7.1, we should probably switch to a string androidVersion
-          "7" = 25; # Assuming 7.1
-          "8" = 27; # Assuming 8.1
-          "9" = 28;
-          "10" = 29;
-          "11" = 30;
-          "12" = 32;
-          "13" = 33;
-          "14" = 34;
-          "15" = 35;
-          "16" = 36;
-        }
-        .${builtins.toString config.androidVersion} or 32;
+      apiLevel = 36;
 
       buildNumber = mkOptionDefault (formatSecondsSinceEpoch config.buildDateTime);
 
@@ -344,11 +324,11 @@ in
           CCACHE_UMASK = "007"; # CCACHE_DIR should be user root, group nixbld
           CCACHE_COMPILERCHECK = "content"; # Default is a mtime+size check. We can't fully rely on that.
         })
-        (mkIf (config.androidVersion >= 11) {
-          # Android 11 ninja filters env vars for more correct incrementalism.
+        {
+          # ninja filters env vars for more correct incrementalism.
           # However, env vars like LD_LIBRARY_PATH must be set for nixpkgs build-userenv-fhs to work
           ALLOW_NINJA_ENV = "true";
-        })
+        }
       ];
 
       build = rec {
@@ -633,33 +613,18 @@ EOF
               python3Packages.pytest
             ];
             buildInputs = [ (pkgs.python3.withPackages (p: [ p.protobuf ])) ];
-            postPatch =
-              lib.optionalString (config.androidVersion == 11) ''
-                cp bin/debugfs_static bin/debugfs
-              ''
-              + lib.optionalString (config.androidVersion <= 10) ''
-                substituteInPlace releasetools/common.py \
-                  --replace 'self.search_path = platform_search_path.get(sys.platform)' "self.search_path = \"$out\"" \
-              '';
+            postPatch = "";
 
             dontBuild = true;
 
-            installPhase =
-              ''
-                for file in bin/*; do
-                  isELF "$file" || continue
-                  bash ${../scripts/patchelf-prefix.sh} "$file" "${pkgs.stdenv.cc.bintools.dynamicLinker}" || continue
-                done
-              ''
-              + ''
-                mkdir -p $out
-                cp --reflink=auto -r * $out/
-              ''
-              + lib.optionalString (config.androidVersion <= 10) ''
-                ln -s $out/releasetools/sign_target_files_apks.py $out/bin/sign_target_files_apks
-                ln -s $out/releasetools/img_from_target_files.py $out/bin/img_from_target_files
-                ln -s $out/releasetools/ota_from_target_files.py $out/bin/ota_from_target_files
-              '';
+            installPhase = ''
+              for file in bin/*; do
+                isELF "$file" || continue
+                bash ${../scripts/patchelf-prefix.sh} "$file" "${pkgs.stdenv.cc.bintools.dynamicLinker}" || continue
+              done
+              mkdir -p $out
+              cp --reflink=auto -r * $out/
+            '';
 
             # Since we copy everything from build dir into $out, we don't want
             # env-vars file which contains a bunch of references we don't need
@@ -712,7 +677,7 @@ EOF
                 });
               }
             );
-            buildFHSEnv = if (config.androidVersion >= 12) then patchedPkgs.buildFHSEnv else pkgs.buildFHSEnv;
+            buildFHSEnv = patchedPkgs.buildFHSEnv;
           in
           buildFHSEnv {
             name = "robotnix-build";

@@ -75,7 +75,7 @@ in
               config = {
                 target = mkDefault name;
                 moduleName = mkDefault (lib.replaceStrings [ "/" ] [ "_" ] name);
-                partition = mkDefault (if (_config.androidVersion >= 10) then "product" else "system");
+                partition = mkDefault "product";
               };
             }
           )

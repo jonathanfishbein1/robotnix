@@ -39,7 +39,6 @@ let
         )
         configuration
         ./flavors/calyxos
-        ./modules/15
         ./modules/16
         ./modules/adevtool
         ./modules/apps/auditor.nix

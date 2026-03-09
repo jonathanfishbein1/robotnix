@@ -161,7 +161,7 @@ mkMerge [
     ])
     {
       signing.avb.mode = "vbmeta_chained";
-      retrofit = mkIf (config.androidVersion >= 10) (mkDefault true);
+      retrofit = mkDefault true;
 
       # Reproducibility fix for persist.img.
       # TODO: Generate uuid based on fingerprint
@@ -180,7 +180,7 @@ mkMerge [
     ])
     {
       signing.avb.mode = "vbmeta_chained";
-      retrofit = mkIf (config.androidVersion >= 10) (mkDefault true);
+      retrofit = mkDefault true;
 
       # Reproducibility fix for persist.img.
       # TODO: Generate uuid based on fingerprint
@@ -205,21 +205,18 @@ mkMerge [
       signing.avb.mode = "vbmeta_chained_v2";
     }
   )
-  (mkIf (config.device == "sunfish" && config.androidVersion >= 12) {
+  (mkIf (config.device == "sunfish") {
     signing.apex.packageNames = [ "com.android.vibrator.sunfish" ];
   })
   (mkIf
-    (
-      lib.elem config.device [
-        "bonito"
-        "sargo"
-        "sunfish"
-        "redfin"
-        "bramble"
-        "barbet"
-      ]
-      && config.androidVersion >= 12
-    )
+    (lib.elem config.device [
+      "bonito"
+      "sargo"
+      "sunfish"
+      "redfin"
+      "bramble"
+      "barbet"
+    ])
     {
       signing.apex.packageNames = [ "com.android.vibrator.drv2624" ];
     }

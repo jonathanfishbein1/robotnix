@@ -186,8 +186,8 @@ in
     {
       assertions = [
         {
-          assertion = (builtins.length cfg.prebuiltImages) != 0 -> config.androidVersion == 12;
-          message = "The --prebuilt-image patch is only applied to Android 12";
+          assertion = cfg.prebuiltImages == [ ];
+          message = "signing.prebuiltImages is not supported on Android 16";
         }
       ];
 
@@ -207,83 +207,62 @@ in
         mkOptionDefault (putInStore "${config.signing.keyStorePath}/${config.device}/verity.x509.pem")
       );
 
-      signing.apex.enable = mkIf (config.androidVersion >= 10) (mkDefault true);
-      # TODO: Some of these apex packages share the same underlying keys. We should try to match that. See META/apexkeys.txt from  target-files
-      signing.apex.packageNames = map (s: "com.android.${s}") (
-        lib.optionals (config.androidVersion == 10) [
-          "runtime.release"
-        ]
-        ++ lib.optionals (config.androidVersion >= 10) [
-          "conscrypt"
-          "media"
-          "media.swcodec"
-          "resolv"
-          "tzdata"
-        ]
-        ++ lib.optionals (config.androidVersion == 11) [
-          "art.release"
-          "vndk.v27"
-        ]
-        ++ lib.optionals (config.androidVersion >= 11) [
-          "adbd"
-          "cellbroadcast"
-          "extservices"
-          "i18n"
-          "ipsec"
-          "mediaprovider"
-          "neuralnetworks"
-          "os.statsd"
-          "permission"
-          "runtime"
-          "sdkext"
-          "telephony"
-          "tethering"
-          "wifi"
-          "vndk.current"
-          "vndk.v28"
-          "vndk.v29"
-        ]
-        ++ lib.optionals (config.androidVersion >= 12) [
-          "appsearch"
-          "art"
-          "art.debug"
-          "art.host"
-          "art.testing"
-          "compos"
-          "geotz"
-          "scheduling"
-          "support.apexer"
-          "tethering.inprocess"
-          "virt"
-          "vndk.current.on_vendor"
-          "vndk.v30"
-        ]
-        ++ lib.optionals (config.androidVersion >= 13) [
-          "adservices"
-          "btservices"
-          "ondevicepersonalization"
-          "uwb"
-        ]
-        ++ lib.optionals (config.androidVersion >= 14) [
-          "configinfrastructure"
-          "devicelock"
-          "healthfitness"
-          "rkpd"
-          "hardware.cas"
-        ]
-        ++ lib.optionals (config.androidVersion >= 15) [
-          "nfcservices"
-          "profiling"
-        ]
-        ++ lib.optionals (config.androidVersion >= 16) [
-          "bt"
-          "crashrecovery"
-          "uprobestats"
-          "hardware.biometrics.face.virtual"
-          "hardware.biometrics.fingerprint.virtual"
-          "telephonycore"
-        ]
-      );
+      signing.apex.enable = mkDefault true;
+      # TODO: Some of these apex packages share the same underlying keys. We should try to match that. See META/apexkeys.txt from target-files
+      signing.apex.packageNames = map (s: "com.android.${s}") [
+        "conscrypt"
+        "media"
+        "media.swcodec"
+        "resolv"
+        "tzdata"
+        "adbd"
+        "cellbroadcast"
+        "extservices"
+        "i18n"
+        "ipsec"
+        "mediaprovider"
+        "neuralnetworks"
+        "os.statsd"
+        "permission"
+        "runtime"
+        "sdkext"
+        "telephony"
+        "tethering"
+        "wifi"
+        "vndk.current"
+        "vndk.v28"
+        "vndk.v29"
+        "appsearch"
+        "art"
+        "art.debug"
+        "art.host"
+        "art.testing"
+        "compos"
+        "geotz"
+        "scheduling"
+        "support.apexer"
+        "tethering.inprocess"
+        "virt"
+        "vndk.current.on_vendor"
+        "vndk.v30"
+        "adservices"
+        "btservices"
+        "ondevicepersonalization"
+        "uwb"
+        "configinfrastructure"
+        "devicelock"
+        "healthfitness"
+        "rkpd"
+        "hardware.cas"
+        "nfcservices"
+        "profiling"
+        "bt"
+        "crashrecovery"
+        "uprobestats"
+        "hardware.biometrics.face.virtual"
+        "hardware.biometrics.fingerprint.virtual"
+        "telephonycore"
+      ];
 
       signing = {
         avbFlags =
@@ -313,7 +292,7 @@ in
             ];
           }
           .${cfg.avb.mode}
-          ++ lib.optionals ((config.androidVersion >= 10) && (cfg.avb.mode != "verity_only")) [
+          ++ lib.optionals (cfg.avb.mode != "verity_only") [
             "--avb_system_other_key $KEYSDIR/${config.device}/avb.pem"
             "--avb_system_other_algorithm ${algorithm}"
           ];
@@ -327,25 +306,14 @@ in
             "build/make/target/product/security/shared" = "${config.device}/shared";
             "build/make/target/product/security/platform" = "${config.device}/platform";
           }
-          // lib.optionalAttrs (config.androidVersion >= 10) {
+          // {
             "build/make/target/product/security/networkstack" = "${config.device}/networkstack";
-          }
-          // lib.optionalAttrs (config.androidVersion == 11) {
-            "frameworks/base/packages/OsuLogin/certs/com.android.hotspot2.osulogin" =
-              "com.android.hotspot2.osulogin";
-            "frameworks/opt/net/wifi/service/resources-certs/com.android.wifi.resources" =
-              "com.android.wifi.resources";
-          }
-          // lib.optionalAttrs (config.androidVersion >= 12) {
-            # Paths to OsuLogin and com.android.wifi have changed
             "packages/modules/Wifi/OsuLogin/certs/com.android.hotspot2.osulogin" =
               "com.android.hotspot2.osulogin";
             "packages/modules/Wifi/service/ServiceWifiResources/resources-certs/com.android.wifi.resources" =
               "com.android.wifi.resources";
             "packages/modules/Connectivity/service/ServiceConnectivityResources/resources-certs/com.android.connectivity.resources" =
               "com.android.connectivity.resources";
-          }
-          // lib.optionalAttrs (config.androidVersion >= 13) {
             "packages/modules/AdServices/adservices/apk/com.android.adservices.api" =
               "com.android.adservices.api";
             "packages/modules/Permission/SafetyCenter/Resources/com.android.safetycenter.resources" =

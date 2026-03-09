@@ -16,11 +16,11 @@
   options.calyxos = {
     branch = lib.mkOption {
       type = with lib.types; str;
-      default = "android15-qpr2";
+      default = "android16";
       description = ''
         The CalyxOS branch to build from.
       '';
-      example = "android15-qpr2";
+      example = "android16";
     };
 
     release = lib.mkOption {
@@ -37,22 +37,9 @@
     let
       inherit (lib)
         optional
-        elem
         mkMerge
         mkDefault
         ;
-
-      # Map Android branch to platform version
-      branchToAndroidVersion = {
-        "android16" = 16;
-        "android15-qpr3" = 15;
-        "android15-qpr2" = 15;
-        "android15-qpr1" = 15;
-        "android15" = 15;
-        "android14-qpr3" = 14;
-        "android14-qpr2" = 14;
-        "android14" = 14;
-      };
 
       supportedDevices = lib.importJSON ./devices.json;
     in
@@ -64,7 +51,7 @@
           if config.calyxos.release != null then config.calyxos.release else config.calyxos.branch
         );
 
-        androidVersion = mkDefault (branchToAndroidVersion.${config.calyxos.branch} or 15);
+        androidVersion = 16;
 
         # Match CalyxOS build environment
         envVars = {
@@ -77,17 +64,9 @@
           lockfile = mkDefault (./. + "/${config.calyxos.branch}/repo.lock");
         };
 
-        warnings =
-          (optional (
-            (config.device != null) && !(elem config.device supportedDevices)
-          ) "${config.device} is not a supported device for CalyxOS")
-          ++ (optional (
-            !(elem config.androidVersion [
-              14
-              15
-              16
-            ])
-          ) "Unsupported androidVersion (not in [14, 15, 16]) for CalyxOS");
+        warnings = optional (
+          (config.device != null) && !(elem config.device supportedDevices)
+        ) "${config.device} is not a supported device for CalyxOS";
       }
       {
         # CalyxOS includes these apps by default

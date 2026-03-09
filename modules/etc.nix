@@ -96,7 +96,7 @@ in
                   mkDefault (pkgs.writeText name' config.text)
                 );
                 moduleName = mkDefault (lib.replaceStrings [ "/" ] [ "_" ] name);
-                partition = mkDefault (if (_config.androidVersion >= 10) then "product" else "system");
+                partition = mkDefault "product";
               };
             }
           )

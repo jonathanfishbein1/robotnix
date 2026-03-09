@@ -4,9 +4,7 @@
   # Supported devices are listed in flavors/calyxos/devices.json
   device = "crosshatch";
 
-  # CalyxOS branch.
-  # Supported branches: android14, android15, android15-qpr1, android15-qpr2, android16
-  calyxos.branch = "android15-qpr2";
+  calyxos.branch = "android16";
 
   apps.fdroid.enable = true;
 

@@ -41,11 +41,6 @@
           inherit configuration pkgs;
         };
 
-      templates.default = {
-        path = ./template;
-        description = "A basic robotnix configuration flake";
-      };
-
       packages.x86_64-linux = {
         gitRepo = pkgs.gitRepo;
       };
@@ -65,7 +60,7 @@
       };
 
       examples = {
-        calyxos = lib.robotnixSystem ./template/calyxos.nix;
+        calyxos = lib.robotnixSystem ./calyxos.nix;
       };
 
       formatter.x86_64-linux = treefmtModule.config.build.wrapper;

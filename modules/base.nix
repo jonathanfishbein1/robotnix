@@ -279,15 +279,14 @@ in
 
       # TODO: The " \\" in the below sed is a bit flaky, and would require the line to end in " \\"
       # come up with something more robust.
-      source.dirs."build/make".postPatch =
-        ''
-          ${lib.concatMapStringsSep "\n" (
-            name: "sed -i '/${name} \\\\/d' target/product/*.mk"
-          ) config.removedProductPackages}
-          echo "\$(call inherit-product-if-exists, robotnix/config/system.mk)" >> target/product/handheld_system.mk
-          echo "\$(call inherit-product-if-exists, robotnix/config/product.mk)" >> target/product/handheld_product.mk
-          echo "\$(call inherit-product-if-exists, robotnix/config/vendor.mk)" >> target/product/handheld_vendor.mk
-        '';
+      source.dirs."build/make".postPatch = ''
+        ${lib.concatMapStringsSep "\n" (
+          name: "sed -i '/${name} \\\\/d' target/product/*.mk"
+        ) config.removedProductPackages}
+        echo "\$(call inherit-product-if-exists, robotnix/config/system.mk)" >> target/product/handheld_system.mk
+        echo "\$(call inherit-product-if-exists, robotnix/config/product.mk)" >> target/product/handheld_product.mk
+        echo "\$(call inherit-product-if-exists, robotnix/config/vendor.mk)" >> target/product/handheld_vendor.mk
+      '';
 
       source.dirs."robotnix/config".src =
         let
@@ -390,119 +389,124 @@ in
               # This was originally in the buildPhase, but building the sdk / atree would complain for unknown reasons when it was set
               # export OUT_DIR=$rootDir/out
               buildPhase = ''
-                  # Become the original user--not fake root.
-                  ${pkgs.toybox}/bin/cat << 'EOF2' | fakeuser $SAVED_UID $SAVED_GID robotnix-build
-                  set -e -o pipefail
+                                  # Become the original user--not fake root.
+                                  ${pkgs.toybox}/bin/cat << 'EOF2' | fakeuser $SAVED_UID $SAVED_GID robotnix-build
+                                  set -e -o pipefail
 
-                  # Create stub vendor files for broken Motorola dependencies
-                  for PLATFORM in sm6375-common sm6225-common; do
-                    MOTO_VENDOR_DIR="vendor/motorola/$PLATFORM"
-                    mkdir -p "$MOTO_VENDOR_DIR"
-                    touch "$MOTO_VENDOR_DIR/qcril_config_$PLATFORM.sql"
-                    touch "$MOTO_VENDOR_DIR/qcril_ecc_$PLATFORM.sql"
-                    touch "$MOTO_VENDOR_DIR/qcril_other_$PLATFORM.sql"
-                    cat > "$MOTO_VENDOR_DIR/Android.bp" <<MOTOEOF
-soong_namespace {
-}
-filegroup {
-    name: "proprietary_rildb_config_sql_files",
-    srcs: ["qcril_config_$PLATFORM.sql"],
-}
-filegroup {
-    name: "proprietary_rildb_ecc_sql_files",
-    srcs: ["qcril_ecc_$PLATFORM.sql"],
-}
-filegroup {
-    name: "proprietary_rildb_other_sql_files",
-    srcs: ["qcril_other_$PLATFORM.sql"],
-}
-MOTOEOF
-                    cat > "$MOTO_VENDOR_DIR/$PLATFORM-vendor.mk" <<MOTOEOF
-# Stub vendor makefile for $PLATFORM
-MOTOEOF
-                  done
+                                  # Create stub vendor files for broken Motorola dependencies
+                                  for PLATFORM in sm6375-common sm6225-common; do
+                                    MOTO_VENDOR_DIR="vendor/motorola/$PLATFORM"
+                                    mkdir -p "$MOTO_VENDOR_DIR"
+                                    touch "$MOTO_VENDOR_DIR/qcril_config_$PLATFORM.sql"
+                                    touch "$MOTO_VENDOR_DIR/qcril_ecc_$PLATFORM.sql"
+                                    touch "$MOTO_VENDOR_DIR/qcril_other_$PLATFORM.sql"
+                                    cat > "$MOTO_VENDOR_DIR/Android.bp" <<MOTOEOF
+                soong_namespace {
+                }
+                filegroup {
+                    name: "proprietary_rildb_config_sql_files",
+                    srcs: ["qcril_config_$PLATFORM.sql"],
+                }
+                filegroup {
+                    name: "proprietary_rildb_ecc_sql_files",
+                    srcs: ["qcril_ecc_$PLATFORM.sql"],
+                }
+                filegroup {
+                    name: "proprietary_rildb_other_sql_files",
+                    srcs: ["qcril_other_$PLATFORM.sql"],
+                }
+                MOTOEOF
+                                    cat > "$MOTO_VENDOR_DIR/$PLATFORM-vendor.mk" <<MOTOEOF
+                # Stub vendor makefile for $PLATFORM
+                MOTOEOF
+                                  done
 
-                  ## loads bash functions for building
-                  source build/envsetup.sh
+                                  ## loads bash functions for building
+                                  source build/envsetup.sh
 
-                  ${lib.optionalString config.adevtool.enable ''
-                    lunch sdk_phone64_x86_64 cur user
-                    mkdir -p /tmp/vendor_imgs
-                    export ADEVTOOL_IMG_DOWNLOAD_DIR=/tmp/vendor_imgs
-                    ${lib.concatStringsSep "\n" (
-                      lib.mapAttrsToList (filename: img: ''
-                        ln -s ${img} /tmp/vendor_imgs/${filename}
-                      '') config.adevtool.vendorImgs
-                    )}
-                    PATH=${
-                      fakeGit config.source.dirs."vendor/adevtool".rev
-                    }/bin:$PATH vendor/adevtool/bin/run generate-all --noVerify -d ${lib.concatStringsSep " " config.adevtool.devices}
-                    rroBPs=$(ls vendor/google_devices/${config.device}/overlays/*__${config.device}__auto_generated_rro_*/Android.bp)
-                    for rroBP in $rroBPs; do
-                      ${pkgs.gnused}/bin/sed -i s/auto_generated_rro/auto_generated_vendor_rro/g $rroBP
-                    done
-                    ${pkgs.gnused}/bin/sed -i s/auto_generated_rro/auto_generated_vendor_rro/g vendor/google_devices/${config.device}/${config.device}.mk
-                  ''}
+                                  ${lib.optionalString config.adevtool.enable ''
+                                    lunch sdk_phone64_x86_64 cur user
+                                    mkdir -p /tmp/vendor_imgs
+                                    export ADEVTOOL_IMG_DOWNLOAD_DIR=/tmp/vendor_imgs
+                                    ${lib.concatStringsSep "\n" (
+                                      lib.mapAttrsToList (filename: img: ''
+                                        ln -s ${img} /tmp/vendor_imgs/${filename}
+                                      '') config.adevtool.vendorImgs
+                                    )}
+                                    PATH=${
+                                      fakeGit config.source.dirs."vendor/adevtool".rev
+                                    }/bin:$PATH vendor/adevtool/bin/run generate-all --noVerify -d ${lib.concatStringsSep " " config.adevtool.devices}
+                                    rroBPs=$(ls vendor/google_devices/${config.device}/overlays/*__${config.device}__auto_generated_rro_*/Android.bp)
+                                    for rroBP in $rroBPs; do
+                                      ${pkgs.gnused}/bin/sed -i s/auto_generated_rro/auto_generated_vendor_rro/g $rroBP
+                                    done
+                                    ${pkgs.gnused}/bin/sed -i s/auto_generated_rro/auto_generated_vendor_rro/g vendor/google_devices/${config.device}/${config.device}.mk
+                                  ''}
 
-                  # Set up vendor blobs using pre-fetched factory image
-                  ${lib.optionalString (config.device != null) ''
-                    ${if config.calyxos.vendorBlobs.enable && config.calyxos.vendorBlobs.factoryImage != null then ''
-                      echo "Setting up vendor blobs for ${config.device}..."
-                      FACTORY_IMAGE="${config.calyxos.vendorBlobs.factoryImage}"
-                      WORK_DIR=$(mktemp -d)
-                      VENDOR_DIR="vendor/google/${config.device}"
+                                  # Set up vendor blobs using pre-fetched factory image
+                                  ${lib.optionalString (config.device != null) ''
+                                    ${
+                                      if config.calyxos.vendorBlobs.enable && config.calyxos.vendorBlobs.factoryImage != null then
+                                        ''
+                                                                echo "Setting up vendor blobs for ${config.device}..."
+                                                                FACTORY_IMAGE="${config.calyxos.vendorBlobs.factoryImage}"
+                                                                WORK_DIR=$(mktemp -d)
+                                                                VENDOR_DIR="vendor/google/${config.device}"
 
-                      ${pkgs.unzip}/bin/unzip -q "$FACTORY_IMAGE" -d "$WORK_DIR" || {
-                        echo "ERROR: Failed to unzip factory image"
-                        rm -rf "$WORK_DIR"
-                        exit 1
-                      }
+                                                                ${pkgs.unzip}/bin/unzip -q "$FACTORY_IMAGE" -d "$WORK_DIR" || {
+                                                                  echo "ERROR: Failed to unzip factory image"
+                                                                  rm -rf "$WORK_DIR"
+                                                                  exit 1
+                                                                }
 
-                      IMAGE_ZIP=$(find "$WORK_DIR" -name "image-*.zip" | head -1)
-                      if [ -z "$IMAGE_ZIP" ]; then
-                        echo "ERROR: Could not find image zip inside factory image"
-                        rm -rf "$WORK_DIR"
-                        exit 1
-                      fi
+                                                                IMAGE_ZIP=$(find "$WORK_DIR" -name "image-*.zip" | head -1)
+                                                                if [ -z "$IMAGE_ZIP" ]; then
+                                                                  echo "ERROR: Could not find image zip inside factory image"
+                                                                  rm -rf "$WORK_DIR"
+                                                                  exit 1
+                                                                fi
 
-                      IMAGE_DIR="$WORK_DIR/images"
-                      mkdir -p "$IMAGE_DIR"
-                      ${pkgs.unzip}/bin/unzip -q "$IMAGE_ZIP" -d "$IMAGE_DIR"
+                                                                IMAGE_DIR="$WORK_DIR/images"
+                                                                mkdir -p "$IMAGE_DIR"
+                                                                ${pkgs.unzip}/bin/unzip -q "$IMAGE_ZIP" -d "$IMAGE_DIR"
 
-                      if [ -f "$IMAGE_DIR/vendor.img" ]; then
-                        mkdir -p "$VENDOR_DIR/proprietary"
-                        cat > "$VENDOR_DIR/${config.device}-vendor.mk" <<'EOF'
-PRODUCT_COPY_FILES +=
-$(call inherit-product, vendor/google/${config.device}/proprietary/Android.mk)
-EOF
-                        cat > "$VENDOR_DIR/proprietary/Android.mk" <<'EOF'
-LOCAL_PATH := $(call my-dir)
-EOF
-                        cat > "$VENDOR_DIR/BoardConfigVendor.mk" <<'EOF'
-EOF
-                      else
-                        echo "WARNING: vendor.img not found in factory image"
-                      fi
+                                                                if [ -f "$IMAGE_DIR/vendor.img" ]; then
+                                                                  mkdir -p "$VENDOR_DIR/proprietary"
+                                                                  cat > "$VENDOR_DIR/${config.device}-vendor.mk" <<'EOF'
+                                          PRODUCT_COPY_FILES +=
+                                          $(call inherit-product, vendor/google/${config.device}/proprietary/Android.mk)
+                                          EOF
+                                                                  cat > "$VENDOR_DIR/proprietary/Android.mk" <<'EOF'
+                                          LOCAL_PATH := $(call my-dir)
+                                          EOF
+                                                                  cat > "$VENDOR_DIR/BoardConfigVendor.mk" <<'EOF'
+                                          EOF
+                                                                else
+                                                                  echo "WARNING: vendor.img not found in factory image"
+                                                                fi
 
-                      rm -rf "$WORK_DIR"
-                    '' else ''
-                      echo "WARNING: No factory image for ${config.device}. Run extract-vendor-metadata.py. See calyxos/README.md"
-                    ''}
-                  ''}
+                                                                rm -rf "$WORK_DIR"
+                                        ''
+                                      else
+                                        ''
+                                          echo "WARNING: No factory image for ${config.device}. Run extract-vendor-metadata.py. See calyxos/README.md"
+                                        ''
+                                    }
+                                  ''}
 
-                  breakfast ${config.device} ${config.variant}
+                                  breakfast ${config.device} ${config.variant}
 
-                  # Fail early if the product was not selected properly
-                  test -n "$TARGET_PRODUCT" || exit 1
+                                  # Fail early if the product was not selected properly
+                                  test -n "$TARGET_PRODUCT" || exit 1
 
-                  export NINJA_ARGS="-j$NIX_BUILD_CORES ${toString ninjaArgs}"
-                  ${preBuild}
-                  ${lib.optionalString (makeTargets != [ ]) "m ${toString makeTargets} | cat"}
-                  ${postBuild}
-                  echo $ANDROID_PRODUCT_OUT > ANDROID_PRODUCT_OUT
+                                  export NINJA_ARGS="-j$NIX_BUILD_CORES ${toString ninjaArgs}"
+                                  ${preBuild}
+                                  ${lib.optionalString (makeTargets != [ ]) "m ${toString makeTargets} | cat"}
+                                  ${postBuild}
+                                  echo $ANDROID_PRODUCT_OUT > ANDROID_PRODUCT_OUT
 
-                  EOF2
-                '';
+                                  EOF2
+              '';
 
               installPhase =
                 ''

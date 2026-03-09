@@ -50,7 +50,6 @@
       nixosModules.attestation-server = import ./nixos/attestation-server/module.nix;
 
       packages.x86_64-linux = {
-        manual = (import ./docs { inherit pkgs; }).manual;
         gitRepo = pkgs.gitRepo;
       };
 

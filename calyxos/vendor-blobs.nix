@@ -15,13 +15,13 @@ let
   cfg = config.calyxos;
 
   # Path to vendor metadata for current branch and device
-  vendorMetadataPath = if config.device != null then ./. + "/${cfg.branch}/vendor_imgs/${config.device}.json" else null;
-  vendorMetadataExists = if vendorMetadataPath != null then builtins.pathExists vendorMetadataPath else false;
+  vendorMetadataPath =
+    if config.device != null then ./. + "/${cfg.branch}/vendor_imgs/${config.device}.json" else null;
+  vendorMetadataExists =
+    if vendorMetadataPath != null then builtins.pathExists vendorMetadataPath else false;
 
   # Import vendor metadata if it exists
-  vendorMetadata = if vendorMetadataExists
-    then lib.importJSON vendorMetadataPath
-    else null;
+  vendorMetadata = if vendorMetadataExists then lib.importJSON vendorMetadataPath else null;
 
 in
 {
@@ -66,9 +66,11 @@ in
 
     # Warnings if metadata is missing
     warnings = lib.optionals (!vendorMetadataExists && config.device != null) [
-      ("No vendor metadata found for ${config.device} on branch ${cfg.branch}. " +
-       "Run ./extract-vendor-metadata.py to generate it. " +
-       "See calyxos/README.md for details.")
+      (
+        "No vendor metadata found for ${config.device} on branch ${cfg.branch}. "
+        + "Run ./extract-vendor-metadata.py to generate it. "
+        + "See calyxos/README.md for details."
+      )
     ];
   };
 }

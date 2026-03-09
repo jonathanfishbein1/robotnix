@@ -123,16 +123,13 @@ let
   hashSeed = uuidgen "persist-hash-${config.buildNumber}-${builtins.toString config.buildDateTime}";
 in
 mkMerge [
-  (mkIf
-    ((config.device != null) && (lib.hasAttr config.device deviceMap))
-    {
-      # Default settings that apply to all devices unless overridden. TODO: Make conditional
-      deviceDisplayName = mkDefault (deviceMap.${config.device}.name or config.device);
-      arch = mkDefault "arm64";
+  (mkIf ((config.device != null) && (lib.hasAttr config.device deviceMap)) {
+    # Default settings that apply to all devices unless overridden. TODO: Make conditional
+    deviceDisplayName = mkDefault (deviceMap.${config.device}.name or config.device);
+    arch = mkDefault "arm64";
 
-      signing.avb.enable = mkDefault true;
-    }
-  )
+    signing.avb.enable = mkDefault true;
+  })
 
   # Device-specific overrides
   (mkIf

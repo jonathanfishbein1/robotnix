@@ -68,7 +68,7 @@ in
     warnings = lib.optionals (!vendorMetadataExists && config.device != null) [
       ("No vendor metadata found for ${config.device} on branch ${cfg.branch}. " +
        "Run ./extract-vendor-metadata.py to generate it. " +
-       "See flavors/calyxos/README.md for details.")
+       "See calyxos/README.md for details.")
     ];
   };
 }

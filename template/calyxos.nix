@@ -1,7 +1,7 @@
 { config, ... }:
 {
   # device codename - crosshatch for Pixel 3 XL in this case.
-  # Supported devices are listed in flavors/calyxos/devices.json
+  # Supported devices are listed in calyxos/devices.json
   device = "crosshatch";
 
   calyxos.branch = "android16";

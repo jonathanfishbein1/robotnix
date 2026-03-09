@@ -486,7 +486,7 @@ EOF
 
                       rm -rf "$WORK_DIR"
                     '' else ''
-                      echo "WARNING: No factory image for ${config.device}. Run extract-vendor-metadata.py. See flavors/calyxos/README.md"
+                      echo "WARNING: No factory image for ${config.device}. Run extract-vendor-metadata.py. See calyxos/README.md"
                     ''}
                   ''}
 

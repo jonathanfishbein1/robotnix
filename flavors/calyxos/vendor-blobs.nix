@@ -46,7 +46,7 @@ in
     };
   };
 
-  config = lib.mkIf (config.flavor == "calyxos" && cfg.vendorBlobs.enable && vendorMetadata != null) {
+  config = lib.mkIf (cfg.vendorBlobs.enable && vendorMetadata != null) {
     # Pre-fetch the factory image using fetchurl
     calyxos.vendorBlobs.factoryImage = pkgs.fetchurl {
       url = vendorMetadata.url;

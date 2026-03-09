@@ -37,13 +37,9 @@
     let
       inherit (lib)
         optional
-        optionalString
-        optionalAttrs
         elem
-        mkIf
         mkMerge
         mkDefault
-        mkForce
         ;
 
       # Map Android branch to platform version
@@ -60,7 +56,7 @@
 
       supportedDevices = lib.importJSON ./devices.json;
     in
-    mkIf (config.flavor == "calyxos") (mkMerge [
+    mkMerge [
       {
         release = "cur";
         productNamePrefix = "";
@@ -107,11 +103,10 @@
         # Add tools needed by CalyxOS vendor blob extraction
         envPackages = with pkgs; [
           curl
-          # Tools for vendor blob extraction (adevtool-style)
-          e2fsprogs  # for debugfs to extract ext4 images
+          e2fsprogs
           python3
           unzip
         ];
       }
-    ]);
+    ];
 }

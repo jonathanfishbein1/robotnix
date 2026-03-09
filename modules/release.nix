@@ -121,11 +121,6 @@ let
       export BOOTLOADER=$(get_radio_image bootloader)
       export RADIO=$(get_radio_image baseband)
 
-      ${lib.optionalString (config.flavor == "grapheneos") ''
-        export DISABLE_UART="true"
-        export DISABLE_FIPS="true"
-        export DISABLE_DPM="true"
-      ''}
 
       export PATH=${lib.getBin pkgs.zip}/bin:${lib.getBin pkgs.unzip}/bin:$PATH
       ${pkgs.runtimeShell} ${config.source.dirs."device/common".src}/generate-factory-images-common.sh
@@ -215,40 +210,15 @@ in
         "${pkgs.unzip}/bin/unzip -p ${targetFiles} IMAGES/recovery.img > $out";
 
     # BUILDID_PLACEHOLDER below was originally config.apv.buildID, but we don't want to have to depend on setting a buildID generally.
-    otaMetadata =
-      (rec {
-        grapheneos = pkgs.writeText "${config.device}-${config.channel}" ''
-          ${config.buildNumber} ${toString config.buildDateTime} ${config.device} ${config.channel}
-        '';
-        lineageos = pkgs.writeText "lineageos-${config.device}.json" (
-          # https://github.com/LineageOS/android_packages_apps_Updater#server-requirements
-          builtins.toJSON {
-            response = [
-              {
-                "datetime" = config.buildDateTime;
-                "filename" = ota.name;
-                "id" = config.buildNumber;
-                "romtype" = config.envVars.RELEASE_TYPE;
-                "size" = "ROM_SIZE";
-                "url" = "${config.apps.updater.url}${ota.name}";
-                "version" = config.flavorVersion;
-              }
-            ];
-          }
-        );
-      }).${config.apps.updater.flavor};
+    otaMetadata = pkgs.writeText "${config.device}-${config.channel}" ''
+      ${config.buildNumber} ${toString config.buildDateTime} ${config.device} ${config.channel}
+    '';
 
     writeOtaMetadata =
       { otaFile, path }:
-      {
-        grapheneos = ''
-          cat ${otaMetadata} > ${path}/${config.device}-${config.channel}
-        '';
-        lineageos = ''
-          sed -e "s:\"ROM_SIZE\":$(du -b ${otaFile} | cut -f1):" ${otaMetadata} > ${path}/lineageos-${config.device}.json
-        '';
-      }
-      .${config.apps.updater.flavor};
+      ''
+        cat ${otaMetadata} > ${path}/${config.device}-${config.channel}
+      '';
 
     # TODO: target-files aren't necessary to publish--but are useful to include if prevBuildDir is set to otaDir output
     otaDir = pkgs.runCommand "${config.device}-otaDir" { } ''

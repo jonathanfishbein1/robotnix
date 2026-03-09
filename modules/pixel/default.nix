@@ -16,20 +16,6 @@ let
     mkOptionDefault
     ;
 
-  imgList = lib.importJSON ./pixel-imgs.json;
-  otaList = lib.importJSON ./pixel-otas.json;
-  fetchItem =
-    json:
-    let
-      matchingItem =
-        lib.findSingle
-          (v: (v.device == config.device) && (lib.hasInfix "(${config.adevtool.buildID}," v.version)) # Look for left paren + upstream buildNumber + ","
-          (throw "no items found for vendor img/ota")
-          (throw "multiple items found for vendor img/ota")
-          json;
-    in
-    pkgs.fetchurl (lib.filterAttrs (n: v: (n == "url" || n == "sha256")) matchingItem);
-
   deviceMap = {
     marlin = {
       name = "Pixel XL";
@@ -138,14 +124,7 @@ let
 in
 mkMerge [
   (mkIf
-    (
-      (lib.elem config.flavor [
-        "vanilla"
-        "grapheneos"
-      ])
-      && (config.device != null)
-      && (lib.hasAttr config.device deviceMap)
-    )
+    ((config.device != null) && (lib.hasAttr config.device deviceMap))
     {
       # Default settings that apply to all devices unless overridden. TODO: Make conditional
       deviceDisplayName = mkDefault (deviceMap.${config.device}.name or config.device);

@@ -71,9 +71,9 @@
         };
       };
 
-      examples = nixpkgs.lib.genAttrs [ "lineageos" "grapheneos" ] (
-        name: lib.robotnixSystem (./. + "/template/${name}.nix")
-      );
+      examples = {
+        calyxos = lib.robotnixSystem ./template/calyxos.nix;
+      };
 
       formatter.x86_64-linux = treefmtModule.config.build.wrapper;
 

@@ -63,21 +63,6 @@ let
 in
 {
   options = {
-    flavor = mkOption {
-      default = null;
-      type = types.nullOr (
-        types.enum [
-          "lineageos"
-          "grapheneos"
-          "calyxos"
-        ]
-      );
-      description = ''
-        Set to one of robotnix's supported flavors.
-      '';
-      example = "vanilla";
-    };
-
     device = mkOption {
       default = null;
       type = types.nullOr types.str;
@@ -319,27 +304,10 @@ in
           ${lib.concatMapStringsSep "\n" (
             name: "sed -i '/${name} \\\\/d' target/product/*.mk"
           ) config.removedProductPackages}
-        ''
-        + (
-          if (config.androidVersion >= 10) then
-            ''
-              echo "\$(call inherit-product-if-exists, robotnix/config/system.mk)" >> target/product/handheld_system.mk
-              echo "\$(call inherit-product-if-exists, robotnix/config/product.mk)" >> target/product/handheld_product.mk
-              echo "\$(call inherit-product-if-exists, robotnix/config/vendor.mk)" >> target/product/handheld_vendor.mk
-            ''
-          else if
-            (config.androidVersion >= 8) # FIXME Unclear if android 8 has these...
-          then
-            ''
-              echo "\$(call inherit-product-if-exists, robotnix/config/system.mk)" >> target/product/core.mk
-              echo "\$(call inherit-product-if-exists, robotnix/config/product.mk)" >> target/product/core.mk
-              echo "\$(call inherit-product-if-exists, robotnix/config/vendor.mk)" >> target/product/core.mk
-            ''
-          else
-            ''
-              # no-op as it's not present in android 7 and under?
-            ''
-        );
+          echo "\$(call inherit-product-if-exists, robotnix/config/system.mk)" >> target/product/handheld_system.mk
+          echo "\$(call inherit-product-if-exists, robotnix/config/product.mk)" >> target/product/handheld_product.mk
+          echo "\$(call inherit-product-if-exists, robotnix/config/vendor.mk)" >> target/product/handheld_vendor.mk
+        '';
 
       source.dirs."robotnix/config".src =
         let
@@ -441,74 +409,42 @@ in
 
               # This was originally in the buildPhase, but building the sdk / atree would complain for unknown reasons when it was set
               # export OUT_DIR=$rootDir/out
-              buildPhase =
-                ''
+              buildPhase = ''
                   # Become the original user--not fake root.
                   ${pkgs.toybox}/bin/cat << 'EOF2' | fakeuser $SAVED_UID $SAVED_GID robotnix-build
                   set -e -o pipefail
 
-                  # CalyxOS: Create stub vendor files for broken Motorola dependencies
-                  ${lib.optionalString (config.flavor == "calyxos") ''
-                    echo "Creating stub vendor files for Motorola device dependencies..."
-
-                    # Create platform-specific stubs for each Motorola platform
-                    for PLATFORM in sm6375-common sm6225-common; do
-                      MOTO_VENDOR_DIR="vendor/motorola/$PLATFORM"
-                      mkdir -p "$MOTO_VENDOR_DIR"
-
-                      # Create stub SQL files at the vendor directory level
-                      touch "$MOTO_VENDOR_DIR/qcril_config_$PLATFORM.sql"
-                      touch "$MOTO_VENDOR_DIR/qcril_ecc_$PLATFORM.sql"
-                      touch "$MOTO_VENDOR_DIR/qcril_other_$PLATFORM.sql"
-
-                      # Create Android.bp directly in vendor directory with filegroups
-                      cat > "$MOTO_VENDOR_DIR/Android.bp" <<MOTOEOF
-// Auto-generated stub vendor files for Motorola $PLATFORM
-// These files are not used in Pixel builds but satisfy Soong module dependencies
-
+                  # Create stub vendor files for broken Motorola dependencies
+                  for PLATFORM in sm6375-common sm6225-common; do
+                    MOTO_VENDOR_DIR="vendor/motorola/$PLATFORM"
+                    mkdir -p "$MOTO_VENDOR_DIR"
+                    touch "$MOTO_VENDOR_DIR/qcril_config_$PLATFORM.sql"
+                    touch "$MOTO_VENDOR_DIR/qcril_ecc_$PLATFORM.sql"
+                    touch "$MOTO_VENDOR_DIR/qcril_other_$PLATFORM.sql"
+                    cat > "$MOTO_VENDOR_DIR/Android.bp" <<MOTOEOF
 soong_namespace {
 }
-
 filegroup {
     name: "proprietary_rildb_config_sql_files",
     srcs: ["qcril_config_$PLATFORM.sql"],
 }
-
 filegroup {
     name: "proprietary_rildb_ecc_sql_files",
     srcs: ["qcril_ecc_$PLATFORM.sql"],
 }
-
 filegroup {
     name: "proprietary_rildb_other_sql_files",
     srcs: ["qcril_other_$PLATFORM.sql"],
 }
 MOTOEOF
-
-                      # Create stub vendor makefile
-                      cat > "$MOTO_VENDOR_DIR/$PLATFORM-vendor.mk" <<MOTOEOF
-# Auto-generated stub vendor makefile for $PLATFORM
-# Not used in this build but present to satisfy dependencies
+                    cat > "$MOTO_VENDOR_DIR/$PLATFORM-vendor.mk" <<MOTOEOF
+# Stub vendor makefile for $PLATFORM
 MOTOEOF
+                  done
 
-                    done
-                    echo "  ✓ Created stub vendor files for Motorola dependencies"
-                  ''}
-
-                  ${lib.optionalString (config.androidVersion >= 6 && config.androidVersion <= 8) ''
-                    # Needed for the jack compilation server
-                    # https://source.android.com/setup/build/jack
-                    mkdir -p $HOME
-                    export USER=foo
-                  ''}
-                  ## loads bash functions for building, such as "breakfast" or "lunch"
+                  ## loads bash functions for building
                   source build/envsetup.sh
 
-                  # in GrapheneOS, <product name> and aosp_<product name> are two
-                  # separate targets - the former has its product makefiles located in
-                  # device/google, and the latter in vendor/google_devices. Therefore,
-                  # we need to extract the vendor blobs *before* running `lunch` with
-                  # our actual phone target.
                   ${lib.optionalString config.adevtool.enable ''
                     lunch sdk_phone64_x86_64 cur user
                     mkdir -p /tmp/vendor_imgs
@@ -521,37 +457,27 @@ MOTOEOF
                     PATH=${
                       fakeGit config.source.dirs."vendor/adevtool".rev
                     }/bin:$PATH vendor/adevtool/bin/run generate-all --noVerify -d ${lib.concatStringsSep " " config.adevtool.devices}
-
-                    # Rename the vendor RROs. This is necessary such that they don't
-                    # conflict with our own RROs (such as the one automatically
-                    # generated by Soong from the product package defined in
-                    # resources.nix)
                     rroBPs=$(ls vendor/google_devices/${config.device}/overlays/*__${config.device}__auto_generated_rro_*/Android.bp)
                     for rroBP in $rroBPs; do
                       ${pkgs.gnused}/bin/sed -i s/auto_generated_rro/auto_generated_vendor_rro/g $rroBP
                     done
-                    # ...and the makefile in which they are being added to PRODUCT_PACKAGES:
                     ${pkgs.gnused}/bin/sed -i s/auto_generated_rro/auto_generated_vendor_rro/g vendor/google_devices/${config.device}/${config.device}.mk
                   ''}
 
-                  # CalyxOS: Set up vendor blobs using pre-fetched factory image
-                  ${lib.optionalString (config.flavor == "calyxos" && config.device != null) ''
+                  # Set up vendor blobs using pre-fetched factory image
+                  ${lib.optionalString (config.device != null) ''
                     ${if config.calyxos.vendorBlobs.enable && config.calyxos.vendorBlobs.factoryImage != null then ''
-                      echo "Setting up CalyxOS vendor blobs for ${config.device}..."
-
-                      # Extract vendor blobs using adevtool-style approach
+                      echo "Setting up vendor blobs for ${config.device}..."
                       FACTORY_IMAGE="${config.calyxos.vendorBlobs.factoryImage}"
                       WORK_DIR=$(mktemp -d)
                       VENDOR_DIR="vendor/google/${config.device}"
 
-                      echo "  Extracting factory image..."
                       ${pkgs.unzip}/bin/unzip -q "$FACTORY_IMAGE" -d "$WORK_DIR" || {
                         echo "ERROR: Failed to unzip factory image"
                         rm -rf "$WORK_DIR"
                         exit 1
                       }
 
-                      # Find and extract inner image zip
                       IMAGE_ZIP=$(find "$WORK_DIR" -name "image-*.zip" | head -1)
                       if [ -z "$IMAGE_ZIP" ]; then
                         echo "ERROR: Could not find image zip inside factory image"
@@ -563,72 +489,29 @@ MOTOEOF
                       mkdir -p "$IMAGE_DIR"
                       ${pkgs.unzip}/bin/unzip -q "$IMAGE_ZIP" -d "$IMAGE_DIR"
 
-                      # Extract vendor.img using debugfs (adevtool-style)
                       if [ -f "$IMAGE_DIR/vendor.img" ]; then
-                        echo "  Extracting vendor blobs from vendor.img using debugfs..."
                         mkdir -p "$VENDOR_DIR/proprietary"
-
-                        # Use debugfs to list and extract files from vendor.img
-                        # This is similar to how adevtool works
-                        echo "  Note: Full vendor blob extraction requires device-specific file lists"
-                        echo "  Creating minimal vendor structure..."
-
-                        # Create basic vendor makefile structure
-                        mkdir -p "$VENDOR_DIR"
                         cat > "$VENDOR_DIR/${config.device}-vendor.mk" <<'EOF'
-# Auto-generated vendor makefile for ${config.device}
-# This is a minimal stub - full extraction requires device-specific configuration
-
 PRODUCT_COPY_FILES +=
-
 $(call inherit-product, vendor/google/${config.device}/proprietary/Android.mk)
 EOF
-
-                        # Create proprietary Android.mk
-                        mkdir -p "$VENDOR_DIR/proprietary"
                         cat > "$VENDOR_DIR/proprietary/Android.mk" <<'EOF'
-# Auto-generated proprietary files makefile
 LOCAL_PATH := $(call my-dir)
 EOF
-
-                        # Create BoardConfigVendor.mk
                         cat > "$VENDOR_DIR/BoardConfigVendor.mk" <<'EOF'
-# Auto-generated vendor board configuration for ${config.device}
-# Minimal configuration to satisfy build requirements
 EOF
-
-                        echo "  ✓ Created vendor makefile structure"
                       else
-                        echo "  WARNING: vendor.img not found in factory image"
+                        echo "WARNING: vendor.img not found in factory image"
                       fi
 
-                      # Clean up
                       rm -rf "$WORK_DIR"
-
-                      echo "✓ Vendor blob setup complete (minimal)"
-                      echo "  Note: This creates basic structure only"
-                      echo "  Full vendor blob extraction requires device-specific file lists"
-                      echo "  Continuing with build..."
                     '' else ''
-                      echo "WARNING: No pre-fetched factory image available for ${config.device}"
-                      echo "  Vendor blobs are required but not configured."
-                      echo "  Run: ./extract-vendor-metadata.py --devices ${config.device} --output-dir ${config.calyxos.branch}/vendor_imgs"
-                      echo "  See: flavors/calyxos/README.md"
+                      echo "WARNING: No factory image for ${config.device}. Run extract-vendor-metadata.py. See flavors/calyxos/README.md"
                     ''}
                   ''}
 
-                ''
-                + (
-                  if config.flavor == "lineageos" || config.flavor == "calyxos" then
-                    ''
-                      breakfast ${config.device} ${config.variant}
-                    ''
-                  else
-                    ''
-                      lunch ${config.productName} ${config.release} ${config.variant}
-                    ''
-                )
-                + ''
+                  breakfast ${config.device} ${config.variant}
+
                   # Fail early if the product was not selected properly
                   test -n "$TARGET_PRODUCT" || exit 1
 

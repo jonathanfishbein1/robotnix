@@ -14,7 +14,6 @@ let
   robotnixBuild = import ./default.nix {
     configuration = {
       device = "arm64";
-      flavor = "vanilla";
     };
   };
 

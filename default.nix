@@ -38,23 +38,9 @@ let
           }
         )
         configuration
-        #./flavors/anbox
-        ./flavors/grapheneos
-        ./flavors/lineageos
         ./flavors/calyxos
-        #./flavors/vanilla
-        #./flavors/vanilla/10
-        #./flavors/vanilla/11
-        #./flavors/vanilla/11/kernel
-        #./flavors/vanilla/12
-        #./flavors/waydroid
-        ./modules/10
-        ./modules/11
-        ./modules/12
-        ./modules/13
         ./modules/15
         ./modules/16
-        ./modules/9
         ./modules/adevtool
         ./modules/apps/auditor.nix
         ./modules/apps/chromium.nix
@@ -74,8 +60,6 @@ let
         ./modules/kernel.nix
         ./modules/microg.nix
         ./modules/pixel
-        ./modules/pixel/active-edge.nix
-        ./modules/pixel/driver-binaries.nix
         ./modules/release.nix
         ./modules/resources.nix
         ./modules/signing.nix

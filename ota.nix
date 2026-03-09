@@ -18,18 +18,7 @@ symlinkJoin {
           common
           ./example.nix
         ];
-        device = "marlin";
-        flavor = "vanilla";
-      };
-    }).otaDir
-    (import ./default.nix {
-      configuration = {
-        imports = [
-          common
-          ./example.nix
-        ];
         device = "crosshatch";
-        flavor = "grapheneos";
       };
     }).otaDir
   ];

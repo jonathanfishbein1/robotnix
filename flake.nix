@@ -46,9 +46,6 @@
         description = "A basic robotnix configuration flake";
       };
 
-      nixosModule = import ./nixos; # Contains all robotnix nixos modules
-      nixosModules.attestation-server = import ./nixos/attestation-server/module.nix;
-
       packages.x86_64-linux = {
         gitRepo = pkgs.gitRepo;
       };

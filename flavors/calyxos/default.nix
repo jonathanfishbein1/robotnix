@@ -108,7 +108,7 @@
         envPackages = with pkgs; [
           curl
           # Tools for vendor blob extraction (adevtool-style)
-          e2fsprogs  # for debugfs to extract ext4 images
+          e2fsprogs # for debugfs to extract ext4 images
           python3
           unzip
         ];
